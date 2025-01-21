@@ -100,7 +100,7 @@ git push origin feature/AmazingFeature
 5. Ouvrez une Pull Request
 
 ## 📄 Licence
-Ce projet est sous licence MIT - voir le fichier [LICENSE.md](LICENSE.md) pour plus de détails.
+Ce projet est sous licence MIT - voir le fichier [LICENSE.md](LICENSE) pour plus de détails.
 
 ## 📞 Contact
 NOUBISSIE KAMGA WILFRIED
