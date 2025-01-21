@@ -1,3 +1,5 @@
+import 'package:cashflow/screens/home_widgets/build_item_info.dart';
+import 'package:cashflow/screens/home_widgets/no_objectives_card.dart';
 import 'package:cashflow/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +12,6 @@ import '../models/utilisateur.dart';
 import '../widgets/savings_chart.dart';
 import '../widgets/error_view.dart';
 import 'add_edit_caisse_screen.dart';
-
 
 class HomeScreen extends StatelessWidget {
   final int utilisateurId;
@@ -82,8 +83,8 @@ class _HomeContent extends StatelessWidget {
         }
 
         if (snapshot.hasError) {
-          return const ErrorView(
-            message: 'Erreur de chargement des données',
+          return ErrorView(
+            message: 'Erreur de chargement des données : ${snapshot.error}',
             icon: Icons.error_outline,
           );
         }
@@ -139,7 +140,8 @@ class _HomeDataView extends StatelessWidget {
           children: [
             WelcomeCard(prenom: getLastName(utilisateur?.nom)),
             if (objectifList.isEmpty)
-              const NoObjectivesCard()
+              NoObjectivesCard(
+                  caisseList: caisseList, utilisateurId: utilisateurId)
             else
               ObjectivesOverview(
                 objectifList: objectifList,
@@ -204,6 +206,7 @@ class ObjectivesOverview extends StatelessWidget {
         return ObjectiveCard(
           objectif: objectif,
           caisseList: caisseList,
+          objectifList: objectifList,
           isFirst: index == 0,
         );
       },
@@ -214,12 +217,14 @@ class ObjectivesOverview extends StatelessWidget {
 class ObjectiveCard extends StatelessWidget {
   final Objectif objectif;
   final List<Caisse> caisseList;
+  final List<Objectif> objectifList; // Ajout de la liste des objectifs
   final bool isFirst;
 
   const ObjectiveCard({
     super.key,
     required this.objectif,
     required this.caisseList,
+    required this.objectifList, // Ajout de la liste des objectifs
     this.isFirst = false,
   });
 
@@ -227,7 +232,7 @@ class ObjectiveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalEconomise = _calculateTotal(caisseList);
     final daysLeft = objectif.dateLimite.difference(DateTime.now()).inDays;
-    //final progress = (totalEconomise / objectif.montantCible).clamp(0.0, 1.0);
+    // final progress = (totalEconomise / objectif.montantCible).clamp(0.0, 1.0);
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -237,13 +242,21 @@ class ObjectiveCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (isFirst) ...[
-              _buildHeader(context),
+              _buildHeader(
+                  context, objectifList), // Passage de la liste des objectifs
               const SizedBox(height: 16),
               SavingsChart(
                 totalEconomise: totalEconomise,
                 montantCible: objectif.montantCible,
               ),
               const SizedBox(height: 16),
+              // LinearProgressIndicator(
+              //   value: progress,
+              //   backgroundColor: Colors.grey[300],
+              //   valueColor: AlwaysStoppedAnimation<Color>(
+              //       Theme.of(context).primaryColor),
+              // ),
+              // const SizedBox(height: 8),
             ],
             _buildProgressInfo(context, totalEconomise, daysLeft),
             const SizedBox(height: 16),
@@ -255,36 +268,80 @@ class ObjectiveCard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, List<Objectif> objectifList) {
     final formatter = NumberFormat.currency(
       locale: 'fr_FR',
       symbol: 'FCFA',
       decimalDigits: 0,
     );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final principalObjectifs =
+        objectifList.where((objectif) => objectif.estPrincipal).toList();
+
+    principalObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
+
+    Objectif? closestObjectif =
+        principalObjectifs.isNotEmpty ? principalObjectifs.first : null;
+
+    if (closestObjectif == null) {
+      final allObjectifs = List<Objectif>.from(objectifList);
+      allObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
+      closestObjectif = allObjectifs.isNotEmpty ? allObjectifs.first : null;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Objectif : ${formatter.format(objectif.montantCible)}',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+        if (closestObjectif != null) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Objectif : ${formatter.format(closestObjectif.montantCible)}',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: closestObjectif.estPrincipal
+                      ? Theme.of(context).primaryColor.withOpacity(0.1)
+                      : Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  closestObjectif.estPrincipal ? 'Principal' : 'Le plus proche',
+                  style: TextStyle(
+                    color: closestObjectif.estPrincipal
+                        ? Theme.of(context).primaryColor
+                        : Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Text(
-            'Principal',
-            style: TextStyle(
-              color: Theme.of(context).primaryColor,
-              fontWeight: FontWeight.bold,
+          if (closestObjectif.description != null &&
+              closestObjectif.description!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                closestObjectif.description!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
             ),
+        ] else
+          Text(
+            'Aucun objectif défini',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
-        ),
       ],
     );
   }
@@ -297,49 +354,17 @@ class ObjectiveCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildInfoItem(
+        buildInfoItem(
           context,
           'Épargné',
           '$totalEconomise FCFA',
           Icons.savings_outlined,
         ),
-        _buildInfoItem(
+        buildInfoItem(
           context,
           'Jours restants',
           '$daysLeft jours',
           Icons.timer_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoItem(
-    BuildContext context,
-    String title,
-    String value,
-    IconData icon,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 20, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
         ),
       ],
     );
@@ -360,16 +385,16 @@ class ObjectiveCard extends StatelessWidget {
     if (montantRestant <= 0) {
       message = 'Félicitations ! Objectif atteint !';
       icon = Icons.celebration;
-      color = Colors.green;
+      color = Theme.of(context).colorScheme.secondary;
     } else if (daysLeft <= 0) {
       message = 'Date limite dépassée. Redéfinissez un nouvel objectif.';
       icon = Icons.warning;
-      color = Colors.orange;
+      color = Theme.of(context).colorScheme.error;
     } else {
       message =
           'Épargnez ${montantParJour.toStringAsFixed(0)} FCFA/jour pour atteindre votre objectif.';
       icon = Icons.tips_and_updates;
-      color = Theme.of(context).primaryColor;
+      color = Theme.of(context).colorScheme.primary;
     }
 
     return Card(
@@ -397,47 +422,5 @@ class ObjectiveCard extends StatelessWidget {
 
   double _calculateTotal(List<Caisse> caisseList) {
     return caisseList.fold(0, (sum, caisse) => sum + caisse.montant);
-  }
-}
-
-class NoObjectivesCard extends StatelessWidget {
-  const NoObjectivesCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              Icons.flag_outlined,
-              size: 48,
-              color: Theme.of(context).primaryColor,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Aucun objectif défini',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Définissez un objectif d\'épargne pour commencer à suivre votre progression',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                // Navigation vers la page des objectifs
-              },
-              child: const Text('Définir un objectif'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

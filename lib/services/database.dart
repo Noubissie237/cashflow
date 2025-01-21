@@ -54,8 +54,10 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         montantCible REAL,
         dateLimite TEXT,
+        description TEXT,
         montantEconomise REAL,
         utilisateurId INTEGER,
+        estPrincipal INTEGER,
         FOREIGN KEY (utilisateurId) REFERENCES utilisateurs(id)
       )
     ''');
@@ -103,13 +105,18 @@ class DatabaseService {
       'caisse',
       where: 'utilisateurId = ?',
       whereArgs: [utilisateurId],
+      // orderBy: 'date DESC',
     );
     return List.generate(maps.length, (i) => Caisse.fromMap(maps[i]));
   }
 
   Future<void> insertObjectif(Objectif objectif) async {
     final db = await database;
-    await db.insert('objectif', objectif.toMap());
+    try {
+      await db.insert('objectif', objectif.toMap());
+    } catch (e) {
+      print('Erreur lors de l\'insertion de l\'objectif : $e');
+    }
   }
 
   Future<List<Objectif>> getObjectifsByUtilisateur(int utilisateurId) async {
@@ -118,6 +125,7 @@ class DatabaseService {
       'objectif',
       where: 'utilisateurId = ?',
       whereArgs: [utilisateurId],
+      // orderBy: 'date DESC',
     );
     return List.generate(maps.length, (i) => Objectif.fromMap(maps[i]));
   }

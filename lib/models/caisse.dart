@@ -1,13 +1,13 @@
 class Caisse {
   int? id;
-  String description;
+  String? description;
   double montant;
   DateTime date;
   int utilisateurId;
 
   Caisse({
     this.id,
-    required this.description,
+    this.description,
     required this.montant,
     required this.date,
     required this.utilisateurId,

@@ -40,7 +40,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      _showErrorDialog('Erreur lors du chargement des données');
+      _showErrorDialog('Erreur lors du chargement des données : $e');
     }
   }
 
@@ -100,12 +100,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Ajoutez votre première entrée en cliquant sur le bouton +',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+            ElevatedButton(
+              onPressed: () => _navigateToEditCaisseScreen(null),
+              child: const Text('Ajouter une entrée'),
             ),
           ],
         ),
@@ -208,7 +205,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         } catch (e) {
           if (!mounted) return;
-          _showErrorDialog('Erreur lors de la suppression');
+          _showErrorDialog('Erreur lors de la suppression : $e');
         }
       },
       child: Card(
@@ -227,7 +224,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
           title: Text(
-            caisse.description,
+            caisse.description!.isNotEmpty
+                ? caisse.description!
+                : "Aucune description",
             style: const TextStyle(
               fontWeight: FontWeight.w500,
             ),

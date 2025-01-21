@@ -3,7 +3,6 @@ import 'package:cashflow/services/theme_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
-import 'services/notification_service.dart';
 import 'screens/goals_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
@@ -11,7 +10,6 @@ import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService().init();
 
   final authService = AuthService();
   final userId = await authService.getUserId();

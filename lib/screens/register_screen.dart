@@ -1,5 +1,6 @@
+import 'package:cashflow/main.dart';
+import 'package:cashflow/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../services/database.dart';
 import '../models/utilisateur.dart';
 import 'login_screen.dart';
@@ -43,9 +44,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _dbService.insertUtilisateur(utilisateur);
       _showSuccessSnackBar('Compte créé avec succès');
 
+      final tmpUser =
+          await _dbService.getUtilisateurByEmail(_emailController.text);
+      if (tmpUser != null) {
+        await AuthService().saveUserId(tmpUser.id!);
+      }
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(
+          builder: (context) => NavigationWrapper(utilisateurId: tmpUser!.id!),
+        ),
       );
     } catch (e) {
       _showErrorSnackBar('Une erreur est survenue');
