@@ -2,11 +2,13 @@ import 'package:cashflow/services/auth_service.dart';
 import 'package:cashflow/services/theme_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/goals_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,18 +16,29 @@ void main() async {
   final authService = AuthService();
   final userId = await authService.getUserId();
 
+  final prefs = await SharedPreferences.getInstance();
+  final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeService(),
-      child: MyApp(userId: userId),
+      child: MyApp(
+        userId: userId,
+        onboardingCompleted: onboardingCompleted,
+      ),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
   final int? userId;
+  final bool onboardingCompleted;
 
-  const MyApp({super.key, this.userId});
+  const MyApp({
+    super.key,
+    this.userId,
+    required this.onboardingCompleted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +66,11 @@ class MyApp extends StatelessWidget {
           filled: true,
         ),
       ),
-      home: userId != null
-          ? NavigationWrapper(utilisateurId: userId!)
-          : const LoginScreen(),
+      home: onboardingCompleted
+          ? (userId != null
+              ? NavigationWrapper(utilisateurId: userId!)
+              : const LoginScreen())
+          : const OnboardingScreen(),
     );
   }
 }
