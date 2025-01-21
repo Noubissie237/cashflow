@@ -1,3 +1,4 @@
+import 'package:cashflow/widgets/empty_state.dart';
 import 'package:flutter/material.dart';
 import '../services/database.dart';
 import '../models/objectif.dart';
@@ -84,54 +85,89 @@ class _GoalsScreenState extends State<GoalsScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Theme.of(context).primaryColor,
-        title: const Text(
-          'Mes Objectifs',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).primaryColor,
+                Theme.of(context).primaryColor.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Mes Objectifs',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              '${_objectifList.length} objectif(s)',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          child: const Hero(
+            tag: 'goals_icon',
+            child: CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(
+                Icons.flag,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadData,
+            icon: const Icon(
+              Icons.refresh,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              _loadData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Objectifs actualisés'),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(milliseconds: 1500),
+                ),
+              );
+            },
           ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _objectifList.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.flag_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
+              ? EmptyStateWidget(
+                  title: 'Aucun objectif défini',
+                  message:
+                      'Commencez à définir vos objectifs financiers pour mieux gérer votre argent',
+                  icon: Icons.flag_outlined,
+                  buttonText: 'Créer un objectif',
+                  iconColor: Theme.of(context).primaryColor,
+                  onActionPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddEditObjectifScreen(
+                        utilisateurId: widget.utilisateurId,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aucun objectif défini',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddEditObjectifScreen(
-                              utilisateurId: widget.utilisateurId,
-                            ),
-                          ),
-                        ).then((_) => _loadData()),
-                        child: const Text('Créer un objectif'),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ).then((_) => _loadData()),
                 )
               : RefreshIndicator(
                   onRefresh: _loadData,

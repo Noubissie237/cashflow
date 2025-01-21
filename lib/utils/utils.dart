@@ -14,6 +14,15 @@ void lienExterne(String link) async {
   }
 }
 
+void lienExterneWithMessage(String link, {String? message}) async {
+  final Uri url = Uri.parse(
+    message != null ? '$link?text=${Uri.encodeComponent(message)}' : link,
+  );
+  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    throw 'Could not launch $url';
+  }
+}
+
   double calculateTotal(List<Caisse> caisseList) {
     return caisseList.fold(0, (sum, caisse) => sum + caisse.montant);
   }

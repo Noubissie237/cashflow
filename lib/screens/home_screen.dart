@@ -33,29 +33,199 @@ class HomeScreen extends StatelessWidget {
   }
 
   AppBar _buildAppBar(BuildContext context) {
+    final themeService = Provider.of<ThemeService>(context);
+    final isDark = themeService.isDarkMode;
+
     return AppBar(
       elevation: 0,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      title: Text(
-        'Dashboard',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).textTheme.titleLarge?.color,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    Colors.grey[900]!,
+                    Colors.grey[850]!,
+                    Colors.grey[800]!,
+                  ]
+                : [
+                    Colors.white,
+                    Colors.grey[50]!,
+                    Colors.grey[100]!,
+                  ],
+          ),
         ),
       ),
-      actions: [
-        IconButton(
-          icon: Icon(
-            Provider.of<ThemeService>(context).isDarkMode
-                ? Icons.light_mode
-                : Icons.dark_mode,
-            color: Theme.of(context).iconTheme.color,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [Colors.blue[700]!, Colors.blue[900]!]
+                  : [Colors.blue[300]!, Colors.blue[500]!],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          onPressed: () {
-            Provider.of<ThemeService>(context, listen: false).toggleTheme();
-          },
+          child: Icon(
+            Icons.dashboard_rounded,
+            color: isDark ? Colors.white : Colors.white,
+          ),
+        ),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Dashboard',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.blue[700]!.withOpacity(0.2)
+                      : Colors.blue[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '2025',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.blue[300] : Colors.blue[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            'Gérez vos finances intelligemment',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  fontSize: 11,
+                ),
+          ),
+        ],
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [Colors.grey[800]!, Colors.grey[900]!]
+                    : [Colors.grey[200]!, Colors.grey[300]!],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).shadowColor.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return RotationTransition(
+                    turns:
+                        Tween<double>(begin: 0.5, end: 1.0).animate(animation),
+                    child: ScaleTransition(
+                      scale: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Icon(
+                  isDark ? Icons.light_mode : Icons.dark_mode,
+                  key: ValueKey<bool>(isDark),
+                  color: isDark ? Colors.orange[300] : Colors.blueGrey[600],
+                ),
+              ),
+              onPressed: themeService.toggleTheme,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [Colors.grey[800]!, Colors.grey[900]!]
+                    : [Colors.grey[200]!, Colors.grey[300]!],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).shadowColor.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.help,
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+              ),
+              onPressed: () => lienExterneWithMessage(
+                "https://wa.me/+237690232120",
+                message:
+                    "Salut Wilfried 👋, j'ai une question ou une suggestion d'amélioration à proposer concernant l'application *CashFlow* 💰",
+              ),
+            ),
+          ),
         ),
       ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1.0),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: isDark
+                  ? [
+                      Colors.blue[700]!.withOpacity(0.1),
+                      Colors.blue[700]!.withOpacity(0.3),
+                      Colors.blue[700]!.withOpacity(0.1),
+                    ]
+                  : [
+                      Colors.blue[200]!.withOpacity(0.1),
+                      Colors.blue[200]!.withOpacity(0.3),
+                      Colors.blue[200]!.withOpacity(0.1),
+                    ],
+            ),
+          ),
+          height: 1.0,
+        ),
+      ),
     );
   }
 
@@ -412,16 +582,6 @@ class ObjectiveCard extends StatelessWidget {
                     .ellipsis, // Ajouter un ellipsis si le texte est trop long
               ),
             ),
-            const SizedBox(width: 8), // Espace entre les éléments
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.help_outline,
-                size: 20,
-                color: Colors.blue,
-              ),
-            ),
-            const SizedBox(width: 8), // Espace entre les éléments
           ],
         ),
         if (objectif.description != null && objectif.description!.isNotEmpty)

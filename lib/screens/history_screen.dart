@@ -1,3 +1,5 @@
+import 'package:cashflow/widgets/empty_state.dart';
+import 'package:cashflow/widgets/savings_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/database.dart';
@@ -64,13 +66,72 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historique des économies'),
         elevation: 0,
+        backgroundColor: Theme.of(context).primaryColor,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).primaryColor,
+                Theme.of(context).primaryColor.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Historique des économies',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              '${_caisseList.length} opérations',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          child: const Hero(
+            tag: 'savings_icon',
+            child: CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(
+                Icons.savings,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
+            icon: const Icon(
+              Icons.refresh,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              _loadData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Données actualisées'),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(milliseconds: 1500),
+                ),
+              );
+            },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
@@ -85,27 +146,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildHistoryList() {
     if (_caisseList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Aucune entrée enregistrée',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => _navigateToEditCaisseScreen(null),
-              child: const Text('Ajouter une entrée'),
-            ),
-          ],
-        ),
+      return EmptyStateWidget(
+        title: 'Aucune entrée enregistrée',
+        message:
+            'Commencez à enregistrer vos économies pour suivre votre progression financière',
+        icon: Icons.savings_outlined,
+        buttonText: 'Ajouter une entrée',
+        iconColor: Theme.of(context).colorScheme.primary,
+        buttonColor: Theme.of(context).colorScheme.primary,
+        onActionPressed: () => _navigateToEditCaisseScreen(null),
       );
     }
 
@@ -116,28 +165,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Theme.of(context).colorScheme.primaryContainer,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Total des économies:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                _formatMonnaie.format(totalMontant),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+        SavingsSummaryWidget(
+          totalAmount: totalMontant,
+          formatter: _formatMonnaie,
         ),
         Expanded(
           child: RefreshIndicator(
