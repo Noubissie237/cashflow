@@ -13,7 +13,6 @@ class Caisse {
     required this.utilisateurId,
   });
 
-  
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -24,7 +23,6 @@ class Caisse {
     };
   }
 
-  
   factory Caisse.fromMap(Map<String, dynamic> map) {
     return Caisse(
       id: map['id'],

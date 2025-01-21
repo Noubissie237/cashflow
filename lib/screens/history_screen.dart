@@ -46,6 +46,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      initialDateRange: DateTimeRange(
+        start: DateTime.now().subtract(const Duration(days: 7)),
+        end: DateTime.now(),
+      ),
+    );
+
+    if (picked != null) {
+      _filterCaisseListByDateRange(picked.start, picked.end);
+    }
+  }
+
+  void _filterCaisseListByDateRange(DateTime startDate, DateTime endDate) {
+    setState(() {
+      _caisseList = _caisseList.where((caisse) {
+        return caisse.date
+                .isAfter(startDate.subtract(const Duration(days: 1))) &&
+            caisse.date.isBefore(endDate.add(const Duration(days: 1)));
+      }).toList();
+    });
+  }
+
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -117,6 +143,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
         actions: [
           IconButton(
             icon: const Icon(
+              Icons.filter_list,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              _showDateRangePicker();
+            },
+          ),
+          IconButton(
+            icon: const Icon(
               Icons.refresh,
               color: Colors.white,
             ),
@@ -131,7 +166,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
               );
             },
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading

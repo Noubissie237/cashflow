@@ -45,10 +45,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
       setState(() => _isLoading = true);
 
       try {
-        // Récupérer l'utilisateur
         final user = await _getUserById(widget.utilisateurId);
 
-        // Vérifier l'ancien mot de passe
         if (_oldPasswordController.text != user['motDePasse']) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -59,14 +57,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
           return;
         }
 
-        // Mettre à jour le mot de passe
         final dbService = DatabaseService();
         await dbService.updatePassword(
           widget.utilisateurId,
           _newPasswordController.text,
         );
 
-        // Afficher un message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Mot de passe mis à jour avec succès'),
@@ -74,7 +70,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
           ),
         );
 
-        // Réinitialiser les champs
         _oldPasswordController.clear();
         _newPasswordController.clear();
         _confirmPasswordController.clear();
@@ -209,8 +204,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _updatePassword,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: appColors
-                                .savingsColor, // Utilisation de la couleur du thème
+                            backgroundColor: appColors.savingsColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(

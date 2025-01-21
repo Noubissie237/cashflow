@@ -245,6 +245,9 @@ class _AddEditCaisseScreenState extends State<AddEditCaisseScreen> {
     if (montant < 0) {
       return 'Le montant ne peut pas être négatif';
     }
+    if (montant % 25 != 0) {
+      return 'Le montant doit être un multiple de 25';
+    }
     return null;
   }
 

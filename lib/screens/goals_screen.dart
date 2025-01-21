@@ -1,4 +1,5 @@
 import 'package:cashflow/widgets/empty_state.dart';
+import 'package:cashflow/widgets/sort_option.dart';
 import 'package:flutter/material.dart';
 import '../services/database.dart';
 import '../models/objectif.dart';
@@ -19,6 +20,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
   List<Objectif> _objectifList = [];
   bool _isLoading = true;
 
+  SortOption _currentSortOption = SortOption.principal;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +35,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           await _dbService.getObjectifsByUtilisateur(widget.utilisateurId);
       setState(() {
         _objectifList = objectifList;
+        _sortObjectifs(_currentSortOption);
         _isLoading = false;
       });
     } catch (e) {
@@ -43,6 +47,36 @@ class _GoalsScreenState extends State<GoalsScreen> {
         ),
       );
     }
+  }
+
+  void _sortObjectifs(SortOption option) {
+    setState(() {
+      _currentSortOption = option;
+      switch (option) {
+        case SortOption.principal:
+          _objectifList.sort((a, b) {
+            if (a.estPrincipal == b.estPrincipal) {
+              return 0;
+            } else if (a.estPrincipal) {
+              return -1;
+            } else {
+              return 1;
+            }
+          });
+          break;
+        case SortOption.dateProche:
+          _objectifList.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
+          break;
+        case SortOption.montantCroissant:
+          _objectifList
+              .sort((a, b) => a.montantCible.compareTo(b.montantCible));
+          break;
+        case SortOption.montantDecroissant:
+          _objectifList
+              .sort((a, b) => b.montantCible.compareTo(a.montantCible));
+          break;
+      }
+    });
   }
 
   Future<void> _deleteObjectif(Objectif objectif) async {
@@ -81,7 +115,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Theme.of(context).primaryColor,
@@ -132,6 +166,40 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.sort,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              showMenu(
+                context: context,
+                position: const RelativeRect.fromLTRB(100, 100, 0, 0),
+                items: [
+                  const PopupMenuItem(
+                    value: SortOption.principal,
+                    child: Text('Objectifs principaux'),
+                  ),
+                  const PopupMenuItem(
+                    value: SortOption.dateProche,
+                    child: Text('Date la plus proche'),
+                  ),
+                  const PopupMenuItem(
+                    value: SortOption.montantCroissant,
+                    child: Text('Montant croissant'),
+                  ),
+                  const PopupMenuItem(
+                    value: SortOption.montantDecroissant,
+                    child: Text('Montant décroissant'),
+                  ),
+                ],
+              ).then((value) {
+                if (value != null) {
+                  _sortObjectifs(value);
+                }
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(
               Icons.refresh,

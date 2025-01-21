@@ -8,8 +8,9 @@ const Map<String, String> fr = {
   'logout_confirmation': 'Êtes-vous sûr de vouloir vous déconnecter ?',
   'cancel': 'Annuler',
   'about': 'À propos',
-  'about_description': 'CashFlow est votre compagnon de gestion financière personnelle. '
-      'Suivez vos dépenses, définissez des objectifs et prenez le contrôle de vos finances.',
+  'about_description':
+      'CashFlow est votre compagnon de gestion financière personnelle. '
+          'Suivez vos dépenses, définissez des objectifs et prenez le contrôle de vos finances.',
   'security': 'Sécurité',
   'change_password': 'Changer le mot de passe',
   'about_cashflow': 'À propos de CashFlow',

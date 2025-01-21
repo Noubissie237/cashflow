@@ -24,4 +24,3 @@ class AnimatedSavingsCounter extends StatelessWidget {
     );
   }
 }
-

@@ -302,6 +302,10 @@ class _HomeDataView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final totalEconomise = calculateTotal(caisseList);
+    final areAllObjectivesAchieved =
+        _areAllObjectivesAchieved(objectifList, totalEconomise);
+
     return RefreshIndicator(
       onRefresh: () => Future.delayed(const Duration(seconds: 1)),
       child: SingleChildScrollView(
@@ -310,9 +314,11 @@ class _HomeDataView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             WelcomeCard(prenom: getLastName(utilisateur?.nom)),
-            if (objectifList.isEmpty)
+            if (objectifList.isEmpty || areAllObjectivesAchieved)
               NoObjectivesCard(
-                  caisseList: caisseList, utilisateurId: utilisateurId)
+                caisseList: caisseList,
+                utilisateurId: utilisateurId,
+              )
             else
               ObjectivesOverview(
                 objectifList: objectifList,
@@ -389,6 +395,16 @@ class ObjectivesOverview extends StatelessWidget {
   }
 }
 
+bool _areAllObjectivesAchieved(
+    List<Objectif> objectifList, double totalEconomise) {
+  for (final objectif in objectifList) {
+    if (totalEconomise < objectif.montantCible) {
+      return false;
+    }
+  }
+  return true;
+}
+
 class ObjectiveCard extends StatelessWidget {
   final Objectif objectif;
   final List<Caisse> caisseList;
@@ -410,16 +426,19 @@ class ObjectiveCard extends StatelessWidget {
     final totalEconomise = calculateTotal(caisseList);
     final daysLeft = objectif.dateLimite.isAfter(DateTime.now())
         ? objectif.dateLimite.difference(DateTime.now()).inDays
-        : 0; // Si la date est dépassée, afficher 0 jours restants
-    final progress = (totalEconomise / objectif.montantCible).clamp(0.0, 1.0);
+        : 0;
 
-    // Sélectionner l'objectif à afficher dans le header
     final objectiveToDisplay =
         _getClosestOrPrincipalObjective(objectifList, totalEconomise);
+    final progress =
+        (totalEconomise / objectiveToDisplay!.montantCible).clamp(0.0, 1.0);
+
+    final tmpDaysLeft = objectiveToDisplay.dateLimite.isAfter(DateTime.now())
+        ? objectiveToDisplay.dateLimite.difference(DateTime.now()).inDays
+        : 0;
 
     return Column(
       children: [
-        // Première carte : Header, SavingsChart, ProgressInfoSimple, LinearProgressIndicator
         if (isFirst)
           Card(
             margin: const EdgeInsets.all(16),
@@ -428,16 +447,16 @@ class ObjectiveCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (objectiveToDisplay != null) ...[
-                    _buildHeader(context,
-                        objectiveToDisplay), // Afficher l'objectif sélectionné
+                  ...[
+                    _buildHeader(context, objectiveToDisplay),
                     const SizedBox(height: 16),
                     SavingsChart(
                       totalEconomise: totalEconomise,
                       montantCible: objectiveToDisplay.montantCible,
                     ),
                     const SizedBox(height: 16),
-                    buildProgressInfoSimple(context, totalEconomise, daysLeft),
+                    buildProgressInfoSimple(
+                        context, totalEconomise, tmpDaysLeft),
                     const SizedBox(height: 16),
                     LinearProgressIndicator(
                       value: progress,
@@ -446,27 +465,14 @@ class ObjectiveCard extends StatelessWidget {
                           Theme.of(context).primaryColor),
                     ),
                     const SizedBox(height: 8),
-                  ] else
-                    const Center(
-                      child: Text(
-                        'Tous les objectifs sont atteints !',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ),
+                  ],
                   const SizedBox(height: 8),
-                  NoObjectivesCard(
-                      caisseList: caisseList, utilisateurId: utilisateurId),
-                  const SizedBox(height: 8),
+                  _buildRecommendation(context, totalEconomise,
+                      objectiveToDisplay.montantCible, tmpDaysLeft)
                 ],
               ),
             ),
           ),
-
-        // Deuxième carte : ProgressInfoWithDescription
         if (!isFirst)
           Card(
             margin: const EdgeInsets.all(16),
@@ -477,11 +483,11 @@ class ObjectiveCard extends StatelessWidget {
                 children: [
                   buildProgressInfoWithDescription(
                     context,
-                    objectif.montantCible, // Utiliser montantCible
+                    objectif.montantCible,
                     daysLeft,
                     objectif.description ?? '',
                   ),
-                  const SizedBox(height: 8), // Espace réduit
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -492,7 +498,7 @@ class ObjectiveCard extends StatelessWidget {
 
   Widget buildProgressInfoWithDescription(
     BuildContext context,
-    double montantCible, // Utiliser montantCible au lieu de totalEconomise
+    double montantCible,
     int daysLeft,
     String description,
   ) {
@@ -505,8 +511,8 @@ class ObjectiveCard extends StatelessWidget {
             buildInfoItem(
               context,
               'Montant cible',
-              '$montantCible FCFA', // Afficher le montant cible
-              Icons.flag_outlined, // Icône pour le montant cible
+              '$montantCible FCFA',
+              Icons.flag_outlined,
             ),
             buildInfoItem(
               context,
@@ -533,27 +539,22 @@ class ObjectiveCard extends StatelessWidget {
 
   Objectif? _getClosestOrPrincipalObjective(
       List<Objectif> objectifList, double totalEconomise) {
-    // Étape 1 : Filtrer les objectifs dont le montantCible est supérieur à totalEconomise
     final filteredObjectives = objectifList
         .where((objectif) => objectif.montantCible > totalEconomise)
         .toList();
 
-    // Si aucun objectif ne reste après le filtrage, retourner null
     if (filteredObjectives.isEmpty) {
       return null;
     }
 
-    // Étape 2 : Filtrer les objectifs principaux parmi les objectifs restants
     final principalObjectifs =
         filteredObjectives.where((objectif) => objectif.estPrincipal).toList();
 
-    // Si des objectifs principaux existent, prendre celui avec la dateLimite la plus proche
     if (principalObjectifs.isNotEmpty) {
       principalObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
       return principalObjectifs.first;
     }
 
-    // Sinon, prendre l'objectif avec la dateLimite la plus proche parmi tous les objectifs restants
     final allObjectifs = List<Objectif>.from(filteredObjectives);
     allObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
     return allObjectifs.isNotEmpty ? allObjectifs.first : null;
@@ -578,8 +579,7 @@ class ObjectiveCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
-                overflow: TextOverflow
-                    .ellipsis, // Ajouter un ellipsis si le texte est trop long
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -599,53 +599,57 @@ class ObjectiveCard extends StatelessWidget {
     );
   }
 
-  // Widget _buildRecommendation(
-  //   BuildContext context,
-  //   double totalEconomise,
-  //   int daysLeft,
-  // ) {
-  //   final montantRestant = objectif.montantCible - totalEconomise;
-  //   final montantParJour = daysLeft > 0 ? montantRestant / daysLeft : 0;
+  Widget _buildRecommendation(
+    BuildContext context,
+    double totalEconomise,
+    double montantCible,
+    int daysLeft,
+  ) {
+    final montantRestant =
+        roundToNextMultipleOf25(montantCible - totalEconomise);
 
-  //   String message;
-  //   IconData icon;
-  //   Color? color;
+    final montantParJour =
+        daysLeft > 0 ? roundToNextMultipleOf25(montantRestant / daysLeft) : 0;
 
-  //   if (montantRestant <= 0) {
-  //     message = 'Félicitations ! Objectif atteint !';
-  //     icon = Icons.celebration;
-  //     color = Theme.of(context).colorScheme.secondary;
-  //   } else if (daysLeft <= 0) {
-  //     message = 'Date limite dépassée. Redéfinissez un nouvel objectif.';
-  //     icon = Icons.warning;
-  //     color = Theme.of(context).colorScheme.error;
-  //   } else {
-  //     message =
-  //         'Épargnez ${montantParJour.toStringAsFixed(0)} FCFA/jour pour atteindre votre objectif.';
-  //     icon = Icons.tips_and_updates;
-  //     color = Theme.of(context).colorScheme.primary;
-  //   }
+    String message;
+    IconData icon;
+    Color? color;
 
-  //   return Card(
-  //     color: color.withOpacity(0.1),
-  //     child: Padding(
-  //       padding: const EdgeInsets.all(16),
-  //       child: Row(
-  //         children: [
-  //           Icon(icon, color: color),
-  //           const SizedBox(width: 16),
-  //           Expanded(
-  //             child: Text(
-  //               message,
-  //               style: TextStyle(
-  //                 color: color,
-  //                 fontWeight: FontWeight.bold,
-  //               ),
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
+    if (montantRestant <= 0) {
+      message = 'Félicitations ! Objectif atteint !';
+      icon = Icons.celebration;
+      color = Theme.of(context).colorScheme.secondary;
+    } else if (daysLeft <= 0) {
+      message = 'Date limite dépassée. Redéfinissez un nouvel objectif.';
+      icon = Icons.warning;
+      color = Theme.of(context).colorScheme.error;
+    } else {
+      message =
+          'Vous devez encore économiser $montantRestant FCFA et il vous reste $daysLeft jour(s) pour atteindre cet objectif.\nÉpargnez ${montantParJour.toStringAsFixed(0)} FCFA/jour pour atteindre votre objectif.';
+      icon = Icons.tips_and_updates;
+      color = Theme.of(context).colorScheme.primary;
+    }
+
+    return Card(
+      color: color.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

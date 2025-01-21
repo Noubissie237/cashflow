@@ -1,4 +1,3 @@
-
 import 'package:cashflow/models/caisse.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -23,6 +22,10 @@ void lienExterneWithMessage(String link, {String? message}) async {
   }
 }
 
-  double calculateTotal(List<Caisse> caisseList) {
-    return caisseList.fold(0, (sum, caisse) => sum + caisse.montant);
-  }
+double calculateTotal(List<Caisse> caisseList) {
+  return caisseList.fold(0, (sum, caisse) => sum + caisse.montant);
+}
+
+double roundToNextMultipleOf25(double amount) {
+  return (amount / 25).ceil() * 25;
+}

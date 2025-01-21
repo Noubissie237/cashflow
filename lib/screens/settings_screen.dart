@@ -98,7 +98,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                       onTap: () {
                         setState(() => _currency = currency);
                         Navigator.pop(context);
-                        // Ici, vous pouvez ajouter la logique pour sauvegarder la devise
                       },
                     ))
                 .toList(),
@@ -163,7 +162,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                       onTap: () {
                         setState(() => _language = language);
                         Navigator.pop(context);
-                        // Ici, vous pouvez ajouter la logique pour sauvegarder la langue
                       },
                     ))
                 .toList(),

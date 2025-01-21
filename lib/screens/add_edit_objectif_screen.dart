@@ -57,7 +57,7 @@ class _AddEditObjectifScreenState extends State<AddEditObjectifScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
+              primary: Colors.blueGrey,
               onPrimary: Colors.white,
               surface: Theme.of(context).cardColor,
               onSurface:
@@ -295,6 +295,9 @@ class _AddEditObjectifScreenState extends State<AddEditObjectifScreen> {
     }
     if (montant < 0) {
       return 'Le montant ne peut pas être négatif';
+    }
+    if (montant % 25 != 0) {
+      return 'Le montant doit être un multiple de 25';
     }
     return null;
   }

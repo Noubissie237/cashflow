@@ -109,9 +109,11 @@ class _NavigationWrapperState extends State<NavigationWrapper> {
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[900]
+              ? Colors.blueGrey[900]
               : Colors.white,
-          selectedItemColor: Theme.of(context).primaryColor,
+          selectedItemColor: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).primaryColorDark,
           unselectedItemColor:
               Theme.of(context).iconTheme.color?.withOpacity(0.7),
           selectedLabelStyle: const TextStyle(
