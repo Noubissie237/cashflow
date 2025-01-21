@@ -1,4 +1,5 @@
 import 'package:cashflow/screens/home_widgets/build_item_info.dart';
+import 'package:cashflow/screens/home_widgets/build_progress_info_simple.dart';
 import 'package:cashflow/screens/home_widgets/no_objectives_card.dart';
 import 'package:cashflow/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -146,6 +147,7 @@ class _HomeDataView extends StatelessWidget {
               ObjectivesOverview(
                 objectifList: objectifList,
                 caisseList: caisseList,
+                utilisateurId: utilisateurId,
               ),
           ],
         ),
@@ -188,9 +190,11 @@ class WelcomeCard extends StatelessWidget {
 class ObjectivesOverview extends StatelessWidget {
   final List<Objectif> objectifList;
   final List<Caisse> caisseList;
+  final int utilisateurId;
 
   const ObjectivesOverview({
     super.key,
+    required this.utilisateurId,
     required this.objectifList,
     required this.caisseList,
   });
@@ -208,6 +212,7 @@ class ObjectivesOverview extends StatelessWidget {
           caisseList: caisseList,
           objectifList: objectifList,
           isFirst: index == 0,
+          utilisateurId: utilisateurId,
         );
       },
     );
@@ -217,210 +222,270 @@ class ObjectivesOverview extends StatelessWidget {
 class ObjectiveCard extends StatelessWidget {
   final Objectif objectif;
   final List<Caisse> caisseList;
-  final List<Objectif> objectifList; // Ajout de la liste des objectifs
+  final List<Objectif> objectifList;
   final bool isFirst;
+  final int utilisateurId;
 
   const ObjectiveCard({
     super.key,
+    required this.utilisateurId,
     required this.objectif,
     required this.caisseList,
-    required this.objectifList, // Ajout de la liste des objectifs
+    required this.objectifList,
     this.isFirst = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final totalEconomise = _calculateTotal(caisseList);
-    final daysLeft = objectif.dateLimite.difference(DateTime.now()).inDays;
-    // final progress = (totalEconomise / objectif.montantCible).clamp(0.0, 1.0);
+    final totalEconomise = calculateTotal(caisseList);
+    final daysLeft = objectif.dateLimite.isAfter(DateTime.now())
+        ? objectif.dateLimite.difference(DateTime.now()).inDays
+        : 0; // Si la date est dépassée, afficher 0 jours restants
+    final progress = (totalEconomise / objectif.montantCible).clamp(0.0, 1.0);
 
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isFirst) ...[
-              _buildHeader(
-                  context, objectifList), // Passage de la liste des objectifs
-              const SizedBox(height: 16),
-              SavingsChart(
-                totalEconomise: totalEconomise,
-                montantCible: objectif.montantCible,
+    // Sélectionner l'objectif à afficher dans le header
+    final objectiveToDisplay =
+        _getClosestOrPrincipalObjective(objectifList, totalEconomise);
+
+    return Column(
+      children: [
+        // Première carte : Header, SavingsChart, ProgressInfoSimple, LinearProgressIndicator
+        if (isFirst)
+          Card(
+            margin: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (objectiveToDisplay != null) ...[
+                    _buildHeader(context,
+                        objectiveToDisplay), // Afficher l'objectif sélectionné
+                    const SizedBox(height: 16),
+                    SavingsChart(
+                      totalEconomise: totalEconomise,
+                      montantCible: objectiveToDisplay.montantCible,
+                    ),
+                    const SizedBox(height: 16),
+                    buildProgressInfoSimple(context, totalEconomise, daysLeft),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor),
+                    ),
+                    const SizedBox(height: 8),
+                  ] else
+                    const Center(
+                      child: Text(
+                        'Tous les objectifs sont atteints !',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  NoObjectivesCard(
+                      caisseList: caisseList, utilisateurId: utilisateurId),
+                  const SizedBox(height: 8),
+                ],
               ),
-              const SizedBox(height: 16),
-              // LinearProgressIndicator(
-              //   value: progress,
-              //   backgroundColor: Colors.grey[300],
-              //   valueColor: AlwaysStoppedAnimation<Color>(
-              //       Theme.of(context).primaryColor),
-              // ),
-              // const SizedBox(height: 8),
-            ],
-            _buildProgressInfo(context, totalEconomise, daysLeft),
-            const SizedBox(height: 16),
-            if (isFirst)
-              _buildRecommendation(context, totalEconomise, daysLeft),
-          ],
-        ),
-      ),
+            ),
+          ),
+
+        // Deuxième carte : ProgressInfoWithDescription
+        if (!isFirst)
+          Card(
+            margin: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildProgressInfoWithDescription(
+                    context,
+                    objectif.montantCible, // Utiliser montantCible
+                    daysLeft,
+                    objectif.description ?? '',
+                  ),
+                  const SizedBox(height: 8), // Espace réduit
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildHeader(BuildContext context, List<Objectif> objectifList) {
+  Widget buildProgressInfoWithDescription(
+    BuildContext context,
+    double montantCible, // Utiliser montantCible au lieu de totalEconomise
+    int daysLeft,
+    String description,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            buildInfoItem(
+              context,
+              'Montant cible',
+              '$montantCible FCFA', // Afficher le montant cible
+              Icons.flag_outlined, // Icône pour le montant cible
+            ),
+            buildInfoItem(
+              context,
+              'Jours restants',
+              '$daysLeft jours',
+              Icons.timer_outlined,
+            ),
+          ],
+        ),
+        if (description.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              description,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Objectif? _getClosestOrPrincipalObjective(
+      List<Objectif> objectifList, double totalEconomise) {
+    // Étape 1 : Filtrer les objectifs dont le montantCible est supérieur à totalEconomise
+    final filteredObjectives = objectifList
+        .where((objectif) => objectif.montantCible > totalEconomise)
+        .toList();
+
+    // Si aucun objectif ne reste après le filtrage, retourner null
+    if (filteredObjectives.isEmpty) {
+      return null;
+    }
+
+    // Étape 2 : Filtrer les objectifs principaux parmi les objectifs restants
+    final principalObjectifs =
+        filteredObjectives.where((objectif) => objectif.estPrincipal).toList();
+
+    // Si des objectifs principaux existent, prendre celui avec la dateLimite la plus proche
+    if (principalObjectifs.isNotEmpty) {
+      principalObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
+      return principalObjectifs.first;
+    }
+
+    // Sinon, prendre l'objectif avec la dateLimite la plus proche parmi tous les objectifs restants
+    final allObjectifs = List<Objectif>.from(filteredObjectives);
+    allObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
+    return allObjectifs.isNotEmpty ? allObjectifs.first : null;
+  }
+
+  Widget _buildHeader(BuildContext context, Objectif objectif) {
     final formatter = NumberFormat.currency(
       locale: 'fr_FR',
       symbol: 'FCFA',
       decimalDigits: 0,
     );
 
-    final principalObjectifs =
-        objectifList.where((objectif) => objectif.estPrincipal).toList();
-
-    principalObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
-
-    Objectif? closestObjectif =
-        principalObjectifs.isNotEmpty ? principalObjectifs.first : null;
-
-    if (closestObjectif == null) {
-      final allObjectifs = List<Objectif>.from(objectifList);
-      allObjectifs.sort((a, b) => a.dateLimite.compareTo(b.dateLimite));
-      closestObjectif = allObjectifs.isNotEmpty ? allObjectifs.first : null;
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (closestObjectif != null) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Objectif : ${formatter.format(closestObjectif.montantCible)}',
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Text(
+                'Objectif : ${formatter.format(objectif.montantCible)}',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: closestObjectif.estPrincipal
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  closestObjectif.estPrincipal ? 'Principal' : 'Le plus proche',
-                  style: TextStyle(
-                    color: closestObjectif.estPrincipal
-                        ? Theme.of(context).primaryColor
-                        : Colors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (closestObjectif.description != null &&
-              closestObjectif.description!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                closestObjectif.description!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                overflow: TextOverflow
+                    .ellipsis, // Ajouter un ellipsis si le texte est trop long
               ),
             ),
-        ] else
-          Text(
-            'Aucun objectif défini',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildProgressInfo(
-    BuildContext context,
-    double totalEconomise,
-    int daysLeft,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        buildInfoItem(
-          context,
-          'Épargné',
-          '$totalEconomise FCFA',
-          Icons.savings_outlined,
-        ),
-        buildInfoItem(
-          context,
-          'Jours restants',
-          '$daysLeft jours',
-          Icons.timer_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecommendation(
-    BuildContext context,
-    double totalEconomise,
-    int daysLeft,
-  ) {
-    final montantRestant = objectif.montantCible - totalEconomise;
-    final montantParJour = daysLeft > 0 ? montantRestant / daysLeft : 0;
-
-    String message;
-    IconData icon;
-    Color? color;
-
-    if (montantRestant <= 0) {
-      message = 'Félicitations ! Objectif atteint !';
-      icon = Icons.celebration;
-      color = Theme.of(context).colorScheme.secondary;
-    } else if (daysLeft <= 0) {
-      message = 'Date limite dépassée. Redéfinissez un nouvel objectif.';
-      icon = Icons.warning;
-      color = Theme.of(context).colorScheme.error;
-    } else {
-      message =
-          'Épargnez ${montantParJour.toStringAsFixed(0)} FCFA/jour pour atteindre votre objectif.';
-      icon = Icons.tips_and_updates;
-      color = Theme.of(context).colorScheme.primary;
-    }
-
-    return Card(
-      color: color.withOpacity(0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+            const SizedBox(width: 8), // Espace entre les éléments
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(
+                Icons.help_outline,
+                size: 20,
+                color: Colors.blue,
               ),
             ),
+            const SizedBox(width: 8), // Espace entre les éléments
           ],
         ),
-      ),
+        if (objectif.description != null && objectif.description!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              objectif.description!,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  double _calculateTotal(List<Caisse> caisseList) {
-    return caisseList.fold(0, (sum, caisse) => sum + caisse.montant);
-  }
+  // Widget _buildRecommendation(
+  //   BuildContext context,
+  //   double totalEconomise,
+  //   int daysLeft,
+  // ) {
+  //   final montantRestant = objectif.montantCible - totalEconomise;
+  //   final montantParJour = daysLeft > 0 ? montantRestant / daysLeft : 0;
+
+  //   String message;
+  //   IconData icon;
+  //   Color? color;
+
+  //   if (montantRestant <= 0) {
+  //     message = 'Félicitations ! Objectif atteint !';
+  //     icon = Icons.celebration;
+  //     color = Theme.of(context).colorScheme.secondary;
+  //   } else if (daysLeft <= 0) {
+  //     message = 'Date limite dépassée. Redéfinissez un nouvel objectif.';
+  //     icon = Icons.warning;
+  //     color = Theme.of(context).colorScheme.error;
+  //   } else {
+  //     message =
+  //         'Épargnez ${montantParJour.toStringAsFixed(0)} FCFA/jour pour atteindre votre objectif.';
+  //     icon = Icons.tips_and_updates;
+  //     color = Theme.of(context).colorScheme.primary;
+  //   }
+
+  //   return Card(
+  //     color: color.withOpacity(0.1),
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(16),
+  //       child: Row(
+  //         children: [
+  //           Icon(icon, color: color),
+  //           const SizedBox(width: 16),
+  //           Expanded(
+  //             child: Text(
+  //               message,
+  //               style: TextStyle(
+  //                 color: color,
+  //                 fontWeight: FontWeight.bold,
+  //               ),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }

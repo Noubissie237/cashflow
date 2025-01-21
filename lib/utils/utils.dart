@@ -1,4 +1,5 @@
 
+import 'package:cashflow/models/caisse.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 String getLastName(String? fullName) {
@@ -12,3 +13,7 @@ void lienExterne(String link) async {
     throw 'Could not launch $url';
   }
 }
+
+  double calculateTotal(List<Caisse> caisseList) {
+    return caisseList.fold(0, (sum, caisse) => sum + caisse.montant);
+  }

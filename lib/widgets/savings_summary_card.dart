@@ -22,7 +22,7 @@ class SavingsSummaryCard extends StatelessWidget {
         : 0.0;
 
     final dernierEpargne =
-        caisseList.isNotEmpty ? caisseList.first.montant.toDouble() : 0.0;
+        caisseList.isNotEmpty ? caisseList.last.montant.toDouble() : 0.0;
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
