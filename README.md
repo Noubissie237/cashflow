@@ -59,12 +59,14 @@ flutter run
 - **shared_preferences** - Stockage local des préférences
 
 ## 📱 Captures d'écran
-![Capture 1](assets/img/img1.jpg)
-![Capture 2](assets/img/img2.jpg)
-![Capture 3](assets/img/img3.jpg)
-![Capture 4](assets/img/img4.jpg)
-![Capture 5](assets/img/img5.jpg)
-![Capture 6](assets/img/img6.jpg)
+<div style="display: flex; flex-wrap: wrap; gap: 10px;">
+  <img src="assets/img/img1.jpg" alt="Capture 1" width="200" />
+  <img src="assets/img/img2.jpg" alt="Capture 2" width="200" />
+  <img src="assets/img/img3.jpg" alt="Capture 3" width="200" />
+  <img src="assets/img/img4.jpg" alt="Capture 4" width="200" />
+  <img src="assets/img/img5.jpg" alt="Capture 5" width="200" />
+  <img src="assets/img/img6.jpg" alt="Capture 6" width="200" />
+</div>
 ## 🔐 Sécurité
 - Authentification sécurisée
 - Données stockées localement sur l'appareil
