@@ -1,4 +1,5 @@
 import 'package:cashflow/widgets/empty_state.dart';
+import 'package:cashflow/widgets/goals_summary.dart';
 import 'package:cashflow/widgets/sort_option.dart';
 import 'package:flutter/material.dart';
 import '../services/database.dart';
@@ -21,6 +22,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
   bool _isLoading = true;
 
   SortOption _currentSortOption = SortOption.principal;
+
+  final NumberFormat _formatMonnaie = NumberFormat.currency(
+    locale: 'fr_FR',
+    symbol: 'FCFA',
+    decimalDigits: 0,
+  );
 
   @override
   void initState() {
@@ -114,6 +121,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double totalAmount =
+        _objectifList.fold(0, (sum, item) => sum + item.montantCible);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -237,170 +247,187 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     ),
                   ).then((_) => _loadData()),
                 )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _objectifList.length,
-                    itemBuilder: (context, index) {
-                      final objectif = _objectifList[index];
-                      final daysLeft =
-                          objectif.dateLimite.difference(DateTime.now()).inDays;
-                      final isCompleted = daysLeft < 0;
+              : Column(
+                  children: [
+                    GoalsSummaryWidget(
+                        totalAmount: totalAmount, formatter: _formatMonnaie),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _loadData,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _objectifList.length,
+                          itemBuilder: (context, index) {
+                            final objectif = _objectifList[index];
+                            final daysLeft = objectif.dateLimite
+                                .difference(DateTime.now())
+                                .inDays;
+                            final isCompleted = daysLeft < 0;
 
-                      return Dismissible(
-                        key: Key(objectif.id.toString()),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        confirmDismiss: (direction) async {
-                          return await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Confirmation'),
-                              content: const Text(
-                                  'Voulez-vous vraiment supprimer cet objectif ?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                  child: const Text('Annuler'),
+                            return Dismissible(
+                              key: Key(objectif.id.toString()),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Supprimer'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        onDismissed: (direction) async {
-                          await _deleteObjectif(objectif);
-                        },
-                        child: Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          color: isCompleted ? Colors.grey[200] : null,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddEditObjectifScreen(
-                                    objectif: objectif,
-                                    utilisateurId: widget.utilisateurId,
-                                  ),
-                                ),
-                              ).then((_) => _loadData());
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      if (objectif.estPrincipal)
-                                        const Icon(
-                                          Icons.star,
-                                          color: Colors.amber,
-                                          size: 20,
-                                        ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _formatMontant(objectif.montantCible),
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: isCompleted
-                                              ? Colors.grey[600]
-                                              : null,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (objectif.description != null &&
-                                      objectif.description!.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        objectif.description!,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today,
-                                        size: 16,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Échéance : ${DateFormat('dd/MM/yyyy').format(objectif.dateLimite)}',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isCompleted
-                                              ? Colors.grey[300]
-                                              : daysLeft > 30
-                                                  ? Colors.green[100]
-                                                  : daysLeft > 7
-                                                      ? Colors.orange[100]
-                                                      : Colors.red[100],
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          isCompleted
-                                              ? 'Terminé'
-                                              : daysLeft == 0
-                                                  ? "Aujourd'hui"
-                                                  : 'J-$daysLeft',
-                                          style: TextStyle(
-                                            color: isCompleted
-                                                ? Colors.grey[700]
-                                                : daysLeft > 30
-                                                    ? Colors.green[900]
-                                                    : daysLeft > 7
-                                                        ? Colors.orange[900]
-                                                        : Colors.red[900],
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Icon(Icons.delete,
+                                    color: Colors.white),
                               ),
-                            ),
-                          ),
+                              confirmDismiss: (direction) async {
+                                return await showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Confirmation'),
+                                    content: const Text(
+                                        'Voulez-vous vraiment supprimer cet objectif ?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text('Annuler'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text('Supprimer'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              onDismissed: (direction) async {
+                                await _deleteObjectif(objectif);
+                              },
+                              child: Card(
+                                elevation: 2,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                color: isCompleted ? Colors.grey[200] : null,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AddEditObjectifScreen(
+                                          objectif: objectif,
+                                          utilisateurId: widget.utilisateurId,
+                                        ),
+                                      ),
+                                    ).then((_) => _loadData());
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            if (objectif.estPrincipal)
+                                              const Icon(
+                                                Icons.star,
+                                                color: Colors.amber,
+                                                size: 20,
+                                              ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _formatMontant(
+                                                  objectif.montantCible),
+                                              style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: isCompleted
+                                                    ? Colors.grey[600]
+                                                    : null,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        if (objectif.description != null &&
+                                            objectif.description!.isNotEmpty)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8),
+                                            child: Text(
+                                              objectif.description!,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today,
+                                              size: 16,
+                                              color: Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Échéance : ${DateFormat('dd/MM/yyyy').format(objectif.dateLimite)}',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isCompleted
+                                                    ? Colors.grey[300]
+                                                    : daysLeft > 30
+                                                        ? Colors.green[100]
+                                                        : daysLeft > 7
+                                                            ? Colors.orange[100]
+                                                            : Colors.red[100],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                isCompleted
+                                                    ? 'Terminé'
+                                                    : daysLeft == 0
+                                                        ? "Aujourd'hui"
+                                                        : 'J-$daysLeft',
+                                                style: TextStyle(
+                                                  color: isCompleted
+                                                      ? Colors.grey[700]
+                                                      : daysLeft > 30
+                                                          ? Colors.green[900]
+                                                          : daysLeft > 7
+                                                              ? Colors
+                                                                  .orange[900]
+                                                              : Colors.red[900],
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                  ],
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
